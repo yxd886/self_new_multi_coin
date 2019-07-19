@@ -8,6 +8,7 @@ HTMRK = 'https://%s/v2/market/'
 HTPBL = 'https://%s/v2/public/'
 HTORD = 'https://%s/v2/orders/'
 HTACT = 'https://%s/v2/accounts/'
+HASSET='https://%s/v2/assets/accounts/assets-to-spot/'
 WS = 'wss://%S/v2/ws/'
 
 ST = 'server-time'
@@ -38,6 +39,7 @@ class DataAPI():
         self.http_market = HTMRK % SERVER
         self.http_orders = HTORD % SERVER
         self.http_account = HTACT % SERVER
+        self.http_asset_to_account = HASSET%SERVER
         self.key = key
         self.secret = bytes(secret,encoding = "utf8")
     def authorize(self, key='', secret=''):
@@ -68,29 +70,37 @@ class DataAPI():
             'FC-ACCESS-KEY': self.key,
             'FC-ACCESS-SIGNATURE': signature,
             'FC-ACCESS-TIMESTAMP': timestamp
-
         }
         #print(url)
-        url= url.replace("fcoin","ifukang",1)
+        #url= url.replace("fcoin","ifukang",1)
+        url = url.replace("com", "pro", 1)
+
         #print(url)
 
         try:
-            r = requests.request(method, url, headers=headers, json=params)
+            r = requests.request(method, url, headers=headers, json=params,timeout=5)
+            requests.session().close()
             r.raise_for_status()
-        except requests.exceptions.HTTPError as err:
+        except Exception as err:
             print(err)
-            print(r.text)
+            return None
         if r.status_code == 200:
             return r.json()
 
     def public_request(self, method, url, **params):
-        url=url.replace("fcoin", "ifukang", 1)
+        url=url.replace("ifukang", "fcoin", 1)
+
+        #print(url)
+        url = url.replace("com", "pro", 1)
+
         #print(url)
         try:
-            r = requests.request(method, url, params=params)
+            r = requests.request(method, url, params=params,timeout=5)
+            requests.session().close()
             r.raise_for_status()
-        except requests.exceptions.HTTPError as err:
+        except Exception as err:
             print(err)
+            return None
         if r.status_code == 200:
             return r.json()
 
@@ -116,13 +126,14 @@ class DataAPI():
     def get_ticker(self, symbol):
         return self.public_request(GET, self.http_market + TICKER % symbol)
 
-    def get_kdata(self, freq='M1', symbol=''):
-        js = self.public_request(GET, self.http_market + KDATA % (freq, symbol))
-        df = pd.DataFrame(js['data'])
-        df['id'] = df['id'].map(lambda x: int2time(x))
-        df = df[KDATA_COLUMNS]
-        df.columns = KDATA_REAL_COL
-        return df
+    def get_kdata(self, freq='M1', symbol='',limit=1):
+        js = self.public_request(GET, self.http_market + KDATA % (freq, symbol),limit=limit)
+        return js
+       # df = pd.DataFrame(js['data'])
+       # df['id'] = df['id'].map(lambda x: int2time(x))
+       # df = df[KDATA_COLUMNS]
+       # df.columns = KDATA_REAL_COL
+       # return df
 
     def get_balance(self):
         """get user balance"""
@@ -131,6 +142,8 @@ class DataAPI():
     def list_orders(self, **payload):
         """get orders"""
         return self.signed_request(GET, self.http_orders, **payload)
+    def wallet_to_trade(self,**payload):
+        return self.signed_request(POST, self.http_asset_to_account, **payload)
 
     def create_order(self, **payload):
         """create order"""
@@ -189,15 +202,17 @@ class fcoin_api:
         self.price_decimal = 2
 
 
-    def set_demical(self,money,coin):
+    def set_demical(self,money,coins):
         obj = self._api.symbols()
-        print(obj)
         #obj=obj.loc[(obj['quote_currency'] == money)&(obj['base_currency'] == coin), ['amount_decimal', 'price_decimal',"limit_amount_min"]]
-        obj = obj[coin+money]
-        #print(obj)
-        self.amount_decimal = obj["amount_decimal"]
-        self.price_decimal = obj["price_decimal"]
-        self.limit_amount_min = float(obj["limit_amount_min"])
+        self.amount_decimal=dict()
+        self.price_decimal=dict()
+        self.limit_amount_min=dict()
+        for coin in coins:
+            obj1 = obj[coin+money]
+            self.amount_decimal[coin+money] = obj1["amount_decimal"]
+            self.price_decimal[coin+money] = obj1["price_decimal"]
+            self.limit_amount_min[coin+money] = float(obj1["limit_amount_min"])
 
         return self.limit_amount_min
 
@@ -209,7 +224,10 @@ class fcoin_api:
         #      print(sys.stderr, 'zb query_account exception,', ex)
         #      return None
 
-    def get_two_float(self, f_str, n):
+    def get_two_float(self, price, n):
+        f_str = str(price)
+        if "e" in f_str:
+            f_str = "%f"%(price)
         f_str = str(f_str)  # f_str = '{}'.format(f_str) 也可以转换为字符串
         a, b, c = f_str.partition('.')
         c = (c + "0" * n)[:n]  # 如论传入的函数有几位小数，在字符串后面都添加n为小数0
@@ -217,8 +235,9 @@ class fcoin_api:
 
     def take_order(self, market, direction, price, size,place="main"):
         while True:
-            size = self.get_two_float(size,self.amount_decimal)
-            price=self.get_two_float(price,self.price_decimal)
+            size = self.get_two_float(size,self.amount_decimal[market])
+            price=self.get_two_float(price,self.price_decimal[market])
+            print(direction)
             print(size)
             print(price)
             if direction == "buy":
@@ -234,6 +253,8 @@ class fcoin_api:
 
         id = obj.get("data", "-1")
         return id
+    def wallet_to_trade(self,coin,amount):
+        self._api.wallet_to_trade(amount=amount,currency=coin)
 
     def get_order_info(self, market, id):
         obj = self._api.get_order(order_id=id)
@@ -267,20 +288,61 @@ class fcoin_api:
         sell1 = obj["asks"][0]
         return buy1, sell1
 
+
+    def get_level_one_amount(self,market,side,obj=None):
+        if not obj:
+            obj = self.get_depth(market)
+        amount = 0
+        for i in range (1,5):
+            amount+=float(obj[side][i*2+1])
+        return amount
+    def get_level_two_amount(self,market,side):
+        obj = self.get_depth(market)
+        amount = 0
+        for i in range (5,15):
+            amount+=float(obj[side][i*2+1])
+        return amount
+
     def cancel_all_pending_order(self,market):
         obj = self._api.list_orders(symbol=market,states="submitted,partial_filled")
-        print(obj)
         obj = obj["data"]
         id_list = [item["id"] for item in obj]
         for id in id_list:
             time.sleep(0.5)
             self.cancel_order(market,id)
 
+    def cancel_all_buy_pending_order(self,market):
+        obj = self._api.list_orders(symbol=market,states="submitted,partial_filled")
+        obj = obj["data"]
+        for item in obj:
+            if item["side"]=="buy":
+                self.cancel_order(market,item["id"])
+
+    def cancel_all_sell_pending_order(self,market):
+        obj = self._api.list_orders(symbol=market,states="submitted,partial_filled")
+        obj = obj["data"]
+        for item in obj:
+            if item["side"]=="sell":
+                self.cancel_order(market,item["id"])
+
+    def get_pending_money(self,market):
+        obj = self._api.list_orders(symbol=market,states="submitted,partial_filled")
+        obj = obj["data"]
+        money = 0
+        for item in obj:
+            money += float(item["price"])*(float(item["amount"]) - float(item["filled_amount"]))
+        return money
+
+
 
     def cancel_order(self, market, id):
         if id=="-1":
             return None
-        obj = self._api.cancel_order(id)
+        try:
+            obj = self._api.cancel_order(id)
+        except Exception as ex:
+            print(sys.stderr, 'in cancel order: ', ex)
+            pass
         return obj
 
 
@@ -460,18 +522,6 @@ class fcoin_api:
         # print("coin_should_have:%f" % self.cell_money[index])
         return 5*(self.cell_step[index])
 
-
-access_key = '3d606364177e4edcabd29019229317b4'
-access_secret = 'c84923d2aa8d47dab75e6655c3ac78c0'
-partition = 2
-money_have = 900
-_money = "pax"
-_coin = "btc"
-
-bidirection = True
-coin_place = "main"
-
-total_filled_amount = 0
-api = fcoin_api(access_key, access_secret)
-api.set_demical(_money,_coin)
+    def get_kline(self,freq,market,limit=1):
+        return self._api.get_kdata(freq=freq,symbol=market,limit=limit)
 
