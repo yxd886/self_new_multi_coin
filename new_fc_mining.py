@@ -109,121 +109,84 @@ def check_and_save():
 
 def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_have,coin_place):
     market = _coin + _money
+    buy_id1 = "-1"
+    buy_id2 = "-1"
+    need_buy = False
+    need_sell =False
+    if bidirection==1 or bidirection==3:
+        need_buy = True
+    if bidirection==2 or bidirection==3:
+        need_sell = True
     while True:
         try:
-            api.wallet_to_trade("usdt", 5)
-            buy_id0 = "-1"
-            buy_id1 = "-1"
-            buy_id2 = "-1"
-            buy_id3 = "-1"
-            buy_id4 = "-1"
-            sell_id_0 = "-1"
-            sell_id_1 = "-1"
-            sell_id_2 = "-1"
-            sell_id_3 = "-1"
-            sell_id_4 = "-1"
             mutex2.acquire()
+            api.wallet_to_trade("usdt", 5)
             api.cancel_all_pending_order(market)
             counter=0
             current_time = time.time()
             obj = api.get_depth(market)
             buy1 = obj["bids"][0*2]
-            buy4 = obj["bids"][3 * 2]
             buy5 = obj["bids"][4*2]
-            buy9 = obj["bids"][8 * 2]
             buy13 = obj["bids"][12 * 2]
             ask1 = obj["asks"][0*2]
-            ask4 = obj["asks"][3 * 2]
             ask5 = obj["asks"][4*2]
             ask13 = obj["asks"][12 * 2]
-            ask9= obj["asks"][8 * 2]
-
-            buy_id0=api.take_order(market, "buy", buy1,min_size,coin_place)
-
-            sell_id_0=api.take_order(market, "sell", ask1, min_size, coin_place)
+            #if need_buy:
+             #   api.take_order(market, "buy", buy1,min_size,coin_place)
+            #if need_sell:
+            #    api.take_order(market, "sell", ask1, min_size, coin_place)
             money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin)
 
-            buy_price1 = buy5
-            buy_price2 = buy13
-            buy_price3 = buy4
-            buy_price4 = buy9
-            sell_price1 = ask5
-            sell_price2 = ask13
-            sell_price3 = ask4
-            sell_price4 = ask9
+            if partition == 1:
+                buy_price1 = buy13
+                buy_price2 = buy13
+                sell_price1 = ask13
+                sell_price2 = ask13
+            else:
+                buy_price1 = buy5
+                buy_price2 = buy13
+                sell_price1 = ask5
+                sell_price2 = ask13
+            if need_buy:
+                current_money_have = money_have - coin*buy1
+                available_coin1_space = current_money_have/2/buy_price1
+                available_coin2_space = current_money_have/2/buy_price2
 
-            current_money_have = money_have - coin*buy1
-            available_coin1_space = current_money_have/2/buy_price1
-            available_coin2_space = current_money_have/2/buy_price2
-            available_coin3_space = current_money_have/2/buy_price3
-            available_coin4_space = current_money_have/2/buy_price4
-
-            money1 = min(money_have,money)/8
-            money2 = min(money_have,money)/8
-            money3 = min(money_have,money)/8
-            money4 = min(money_have,money)/8
+                money1 = min(money_have,money)/2
+                money2 = min(money_have,money)/2
 
 
-            coin1_can_buy = money1/ buy_price1
-            coin2_can_buy = money2 / buy_price2
-            coin3_can_buy = money3/ buy_price3
-            coin4_can_buy = money4 / buy_price4
+                coin1_can_buy = money1/ buy_price1
+                coin2_can_buy = money2 / buy_price2
 
-            print("level 1 coin can buy:%f"%coin1_can_buy)
-            print("level 2 coin can buy:%f" % coin2_can_buy)
+                print("level 1 coin can buy:%f"%coin1_can_buy)
+                print("level 2 coin can buy:%f" % coin2_can_buy)
 
-            print("available_coin1_space:%f"%available_coin1_space)
-            print("available_coin2_space:%f" % available_coin2_space)
-
-            print("trade pair:%s" % market)
-            amount = min(available_coin1_space, coin1_can_buy)
-            real_amount = max(amount, min_size)
-            print("take buy order 1")
-            buy_id1 = api.take_order(market, "buy", buy_price1,
-                                    (real_amount),
-                                    coin_place)
-
-            print("trade pair:%s" % market)
-            amount = min(available_coin2_space, coin2_can_buy)
-            real_amount = max(amount, min_size)
-            print("take buy order 2")
-            buy_id2 = api.take_order(market, "buy", buy_price2,
-                                    (real_amount),
-                                    coin_place)
-
-            print("trade pair:%s" % market)
-            amount = min(available_coin3_space, coin3_can_buy)
-            real_amount = max(amount, min_size)
-
-            print("take buy order 3")
-            buy_id3 = api.take_order(market, "buy", buy_price3,
-                                    (real_amount),
-                                    coin_place)
-
-            print("trade pair:%s" % market)
-            amount = min(available_coin4_space, coin4_can_buy)
-            real_amount = max(amount, min_size)
-
-            print("take buy order 4")
-            buy_id4 = api.take_order(market, "buy", buy_price4,
-                                    (real_amount),
-                                    coin_place)
+                print("available_coin1_space:%f"%available_coin1_space)
+                print("available_coin2_space:%f" % available_coin2_space)
 
 
 
-            coin1_can_sell = coin / 8
-            coin2_can_sell = coin / 8
-            coin3_can_sell = coin / 8
-            coin4_can_sell = coin / 8
+                if available_coin1_space>min_size and coin1_can_buy>min_size:
+                    print("take buy order 1")
+                    buy_id1 = api.take_order(market, "buy", buy_price1,
+                                            (min(available_coin1_space,coin1_can_buy)),
+                                            coin_place)
+                if available_coin2_space>min_size and coin2_can_buy>min_size:
+                    print("take buy order 2")
+                    buy_id2 = api.take_order(market, "buy", buy_price2,
+                                            (min(available_coin2_space,coin2_can_buy)),
+                                            coin_place)
 
-            if coin1_can_sell>min_size:
-                sell_id_1 = api.take_order(market, "sell", sell_price1, coin1_can_sell,coin_place)
-            if coin2_can_sell>min_size:
-                sell_id_2 = api.take_order(market, "sell", sell_price2, coin2_can_sell, coin_place)
-            if coin3_can_sell>min_size:
-                sell_id_3 = api.take_order(market, "sell", sell_price3, coin3_can_sell,coin_place)
-            if coin4_can_sell>min_size:
-                sell_id_4 = api.take_order(market, "sell", sell_price4, coin4_can_sell, coin_place)
+
+            if need_sell:
+                coin1_can_sell = coin/2
+                coin2_can_sell = coin / 2
+
+                if coin1_can_sell>min_size:
+                    sell_id_1 = api.take_order(market, "sell", sell_price1, coin1_can_sell,coin_place)
+                if coin2_can_sell>min_size:
+                    sell_id_2 = api.take_order(market, "sell", sell_price2, coin2_can_sell, coin_place)
 
             mutex2.release()
 
@@ -239,143 +202,75 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
         interval = 0.1
         while True:
             try:
-                time.sleep(2)
-                current_time = time.time()
-                obj = api.get_depth(market)
-                buy1 = obj["bids"][0 * 2]
-                buy4 = obj["bids"][3 * 2]
-                buy5 = obj["bids"][4 * 2]
-                buy9 = obj["bids"][8 * 2]
-                buy13 = obj["bids"][12 * 2]
-                ask1 = obj["asks"][0 * 2]
-                ask4 = obj["asks"][3 * 2]
-                ask5 = obj["asks"][4 * 2]
-                ask13 = obj["asks"][12 * 2]
-                ask9 = obj["asks"][8 * 2]
-
-                # risk control
-                kline_obj = api.get_kline("H1", market, 1)
-                open_price = kline_obj["data"][0]["open"]
-                current_price = buy1
-                ratio = (open_price - current_price) / open_price
-                print("risk control ratio:%f" % ratio)
-                if (ratio > 0.05):  # 1 hour kline drop exceeds 5%
-                    api.cancel_all_pending_order(market)
-                    time.sleep(5)
-                    money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin)
-                    api.take_order(market, "sell", buy13 * 0.99, coin, coin_place)
-                    time.sleep(30)
-                    api.take_order(market,"buy",buy1*0.85,coin,coin_place)
-                    time.sleep(1800)
-                    break
-
-                tmp = api.take_order(market, "buy", buy1, min_size, coin_place)
-                api.cancel_order(market,buy_id0)
-                buy_id0 = tmp
-
-                tmp = api.take_order(market, "sell", ask1, min_size, coin_place)
-                api.cancel_order(market, sell_id_0)
-                sell_id_0 = tmp
-                time.sleep(interval)
-                money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin)
-
-                buy_price1 = buy5
-                buy_price2 = buy13
-                buy_price3 = buy4
-                buy_price4 = buy9
-                sell_price1 = ask5
-                sell_price2 = ask13
-                sell_price3 = ask4
-                sell_price4 = ask9
-
-                current_money_have = money_have - coin * buy1
-                available_coin1_space = current_money_have / 2 / buy_price1
-                available_coin2_space = current_money_have / 2 / buy_price2
-                available_coin3_space = current_money_have / 2 / buy_price3
-                available_coin4_space = current_money_have / 2 / buy_price4
-
-                money1 = min(money_have, money) / 4
-                money2 = min(money_have, money) / 4
-                money3 = min(money_have, money) / 4
-                money4 = min(money_have, money) / 4
-
-                coin1_can_buy = money1 / buy_price1
-                coin2_can_buy = money2 / buy_price2
-                coin3_can_buy = money3 / buy_price3
-                coin4_can_buy = money4 / buy_price4
-
-                print("trade pair:%s"%market)
-                amount = min(available_coin1_space,coin1_can_buy)
-                real_amount = max(amount,min_size)
-                time.sleep(interval)
-                tmp = api.take_order(market, "buy", buy_price1,
-                                         (real_amount),
-                                         coin_place)
-                api.cancel_order(market, buy_id1)
-                buy_id1 = tmp
-
-
-                amount = min(available_coin2_space,coin2_can_buy)
-                real_amount = max(amount,min_size)
-                time.sleep(interval)
-                tmp = api.take_order(market, "buy", buy_price2,
-                                         (real_amount),
-                                         coin_place)
-                api.cancel_order(market, buy_id2)
-                buy_id2 = tmp
-
-                amount = min(available_coin3_space,coin3_can_buy)
-                real_amount = max(amount,min_size)
-                time.sleep(interval)
-                tmp = api.take_order(market, "buy", buy_price3,
-                                         (real_amount),
-                                         coin_place)
-                api.cancel_order(market, buy_id3)
-                buy_id3 = tmp
-
-                amount = min(available_coin4_space,coin4_can_buy)
-                real_amount = max(amount,min_size)
-                time.sleep(interval)
-                tmp = api.take_order(market, "buy", buy_price4,
-                                         (real_amount),
-                                         coin_place)
-                api.cancel_order(market, buy_id4)
-                buy_id4 = tmp
-
-                coin1_can_sell = coin / 4
-                coin2_can_sell = coin / 4
-                coin3_can_sell = coin / 4
-                coin4_can_sell = coin / 4
-
-                if coin1_can_sell > min_size:
-                    time.sleep(interval)
-                    tmp = api.take_order(market, "sell", sell_price1, coin1_can_sell, coin_place)
-                    api.cancel_order(market,sell_id_1)
-                    sell_id_1 = tmp
-                if coin2_can_sell > min_size:
-                    time.sleep(interval)
-                    tmp = api.take_order(market, "sell", sell_price2, coin2_can_sell, coin_place)
-                    api.cancel_order(market,sell_id_2)
-                    sell_id_2 = tmp
-
-                if coin3_can_sell > min_size:
-                    time.sleep(interval)
-                    tmp = api.take_order(market, "sell", sell_price3, coin3_can_sell, coin_place)
-                    api.cancel_order(market,sell_id_3)
-                    sell_id_3 = tmp
-                if coin4_can_sell > min_size:
-                    time.sleep(interval)
-                    tmp = api.take_order(market, "sell", sell_price4, coin4_can_sell, coin_place)
-                    api.cancel_order(market,sell_id_4)
-                    sell_id_4 = tmp
-                counter+= time.time()-current_time
                 print("counter:%d"%counter)
+                obj = api.get_depth(market)
+                buy5 = obj["bids"][4 * 2]
+                buy15 = obj["bids"][14 * 2]
+                buy4 = obj["bids"][3 * 2]
+                buy11 = obj["bids"][10 * 2]
+                buy10 = obj["bids"][9 * 2]
+                ask5 = obj["asks"][4 * 2]
+                ask15 = obj["asks"][14 * 2]
+                ask4 = obj["asks"][3 * 2]
+                ask11 = obj["asks"][10 * 2]
+                ask10 = obj["asks"][9 * 2]
 
+                if partition==1:
+                    buy_upper1 = buy10
+                    buy_lower1 = buy15
+                    sell_upper1 = ask15
+                    sell_lower1 = ask10
+                else:
+                    buy_upper1 = buy4
+                    buy_lower1 = buy5
+                    sell_upper1 = ask5
+                    sell_lower1 = ask4
+                buy_upper2 = buy11
+                buy_lower2 = buy15
+                sell_upper2 = ask15
+                sell_lower2 = ask11
+                print("buy4:%f" % buy4)
+                print("buy10:%f" % buy10)
+                print("sell4:%f"% ask4)
+                print("sell10:%f" % ask10)
+                print("trade pair:"+market)
+                restart = False
 
+                if counter>300:
+                    restart = True
+                    print("cancel reason 1")
+                elif need_buy and( buy_id1 == "-1" and buy_id2 == "-1"):
+                    restart= True
+                    print("cancel reason 2")
+                elif need_buy and(buy_price1>buy_upper1 or buy_price2>buy_upper2):
+                    restart = True
+                    print("cancel reason 3")
+                elif need_buy and (buy_price1<buy_lower1 or buy_price2<buy_lower2):
+                    restart = True
+                    print("cancel reason 4")
+                elif need_sell and (sell_price1>sell_upper1 or sell_price2>sell_upper2):
+                    restart = True
+                    print("cancel reason 5")
+                elif need_sell and (sell_price1<sell_lower1 or sell_price2<sell_lower2):
+                    restart = True
+                    print("cancel reason 6")
+
+                counter = time.time()-current_time
+                time.sleep(interval)
+                if restart:
+                    buy_id1="-1"
+                    buy_id2="-1"
+                    api.cancel_all_pending_order(market)
+                    time.sleep(0.5)
+                    break
 
             except Exception as ex:
                 print(sys.stderr, 'zb request ex: ', ex)
+                buy_id1 = "-1"
+                buy_id2 = "-1"
                 break
+
+
 
 
 def load_record():
@@ -439,45 +334,6 @@ def tick(load_access_key, load_access_secret, load_money, load_coin, load_pariti
     except Exception as ex:
         print(sys.stderr, 'tick: ', ex)
         #a= input()
-
-
-def save_record():
-    global global_config,load_access_key,load_access_secret,load_money,load_coin,load_parition,load_total_money,load_bidirection,load_coin_place
-
-    load_access_key=save_access_key = entry1.get().strip()
-    load_access_secret=save_access_secret = entry2.get().strip()
-    load_money=save__money = entry4.get().strip().lower()
-    load_coin=save__coin = entry5.get().strip().lower()
-    load_parition=save_parition = entry6.get().strip()
-    load_total_money=save_total_money = (entry7.get().strip())
-    load_bidirection=save_bidirection = (entry8.get().strip())
-    load_coin_place=save_coin_place = (entry9.get().strip())
-
-    tmp = save_access_key + gap + save_access_secret + gap + save__money + gap + save__coin + gap + save_parition + gap + save_total_money + gap + save_bidirection + gap + save_coin_place
-    global_config = encrypt_oracle(tmp)
-
-    win.destroy()
-
-def delete_record():
-    if os.path.exists(config_file):
-        os.remove(config_file)
-
-
-def is_need_record():
-
-    label1 = tkinter.Label(win, text="是否记住本次配置便于下次重启或多开？:")
-    label1.pack()
-    button1 = tkinter.Button(win, text="是", command=save_record)  # 收到消息执行这个函数
-    button1.pack()  # 加载到窗体，
-    button2 = tkinter.Button(win, text="否", command=delete_record)  # 收到消息执行这个函数
-    button2.pack()  # 加载到窗体，
-
-def get_license_day():
-    global license_day
-    license_day = float(entryday.get().strip())
-    #license_day  = 0.00069
-    win.destroy()
-# 导入密钥
 
 
 
@@ -549,8 +405,8 @@ if __name__ == '__main__':
 
 
     load_money = "usdt"
-    total_load_coin="eos etc ltc bch trx xrp xlm ft zec ada dash bsv iota"
-    load_coin = "eth btc"
+    total_load_coin="bch trx xrp xlm ft zec ada dash bsv iota"
+    load_coin = "eth btc eos etc ltc"
     load_parition="2"
     load_total_money="100"
     load_bidirection="3"
