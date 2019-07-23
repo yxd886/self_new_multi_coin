@@ -113,91 +113,59 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
     buy_id2 = "-1"
     need_buy = False
     need_sell =False
+    min_price_tick = 1/(10**api.price_decimal[market])
     if bidirection==1 or bidirection==3:
         need_buy = True
     if bidirection==2 or bidirection==3:
         need_sell = True
     while True:
         try:
-            mutex2.acquire()
             api.wallet_to_trade("usdt", 5)
             api.cancel_all_pending_order(market)
             counter=0
             current_time = time.time()
             obj = api.get_depth(market)
             buy1 = obj["bids"][0*2]
-            buy5 = obj["bids"][4*2]
-            buy13 = obj["bids"][12 * 2]
             ask1 = obj["asks"][0*2]
-            ask5 = obj["asks"][4*2]
-            ask13 = obj["asks"][12 * 2]
             #if need_buy:
              #   api.take_order(market, "buy", buy1,min_size,coin_place)
             #if need_sell:
             #    api.take_order(market, "sell", ask1, min_size, coin_place)
+            for i in range(9):
+                buy_price=buy1-i*min_price_tick
+                sell_price=ask1+i*min_price_tick
+                if need_buy:
+                    api.take_order(market, "buy", buy_price, min_size*(i+1), coin_place)
+                    time.sleep(0.1)
+                if need_sell:
+                    api.take_order(market, "sell", sell_price, min_size*(i+1), coin_place)
+                    time.sleep(0.1)
+
             money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin)
 
-            if partition == 1:
-                buy_price1 = buy13
-                buy_price2 = buy13
-                sell_price1 = ask13
-                sell_price2 = ask13
-            else:
-                buy_price1 = buy5
-                buy_price2 = buy13
-                sell_price1 = ask5
-                sell_price2 = ask13
+            buy_price = buy1 - 9 * min_price_tick
+            sell_price = ask1 + 9 * min_price_tick
+
             if need_buy:
                 current_money_have = money_have - coin*buy1
-                available_coin1_space = current_money_have/2/buy_price1
-                available_coin2_space = current_money_have/2/buy_price2
-
-                money1 = min(money_have,money)/2
-                money2 = min(money_have,money)/2
-
-
-                coin1_can_buy = money1/ buy_price1
-                coin2_can_buy = money2 / buy_price2
-
+                available_coin_space = current_money_have/buy_price
+                money1 = min(money_have,money)
+                coin1_can_buy = money1/ buy_price
                 print("level 1 coin can buy:%f"%coin1_can_buy)
-                print("level 2 coin can buy:%f" % coin2_can_buy)
-
-                print("available_coin1_space:%f"%available_coin1_space)
-                print("available_coin2_space:%f" % available_coin2_space)
-
-
-
-                if available_coin1_space>min_size and coin1_can_buy>min_size:
+                print("available_coin1_space:%f"%available_coin_space)
+                if available_coin_space>min_size and coin1_can_buy>min_size:
                     print("take buy order 1")
-                    buy_id1 = api.take_order(market, "buy", buy_price1,
-                                            (min(available_coin1_space,coin1_can_buy)),
+                    buy_id1 = api.take_order(market, "buy", buy_price,
+                                            (min(available_coin_space,coin1_can_buy)),
                                             coin_place)
-                if available_coin2_space>min_size and coin2_can_buy>min_size:
-                    print("take buy order 2")
-                    buy_id2 = api.take_order(market, "buy", buy_price2,
-                                            (min(available_coin2_space,coin2_can_buy)),
-                                            coin_place)
-
-
             if need_sell:
-                coin1_can_sell = coin/2
-                coin2_can_sell = coin / 2
-
+                coin1_can_sell = coin
                 if coin1_can_sell>min_size:
-                    sell_id_1 = api.take_order(market, "sell", sell_price1, coin1_can_sell,coin_place)
-                if coin2_can_sell>min_size:
-                    sell_id_2 = api.take_order(market, "sell", sell_price2, coin2_can_sell, coin_place)
-
-            mutex2.release()
+                    sell_id_1 = api.take_order(market, "sell", sell_price, coin1_can_sell,coin_place)
 
             # api.balance_account("QC","USDT")
         except Exception as ex:
             print(sys.stderr, 'zb request ex: ', ex)
-            try:
-                mutex2.release()
-            except:
-                print("exception")
-
             continue
         interval = 0.1
         while True:
@@ -215,20 +183,12 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
                 ask11 = obj["asks"][10 * 2]
                 ask10 = obj["asks"][9 * 2]
 
-                if partition==1:
-                    buy_upper1 = buy10
-                    buy_lower1 = buy15
-                    sell_upper1 = ask15
-                    sell_lower1 = ask10
-                else:
-                    buy_upper1 = buy4
-                    buy_lower1 = buy5
-                    sell_upper1 = ask5
-                    sell_lower1 = ask4
-                buy_upper2 = buy11
-                buy_lower2 = buy15
-                sell_upper2 = ask15
-                sell_lower2 = ask11
+
+                buy_upper1 = buy5
+                buy_lower1 = buy15
+                sell_upper1 = ask15
+                sell_lower1 = ask5
+
                 print("buy4:%f" % buy4)
                 print("buy10:%f" % buy10)
                 print("sell4:%f"% ask4)
@@ -239,19 +199,16 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
                 if counter>300:
                     restart = True
                     print("cancel reason 1")
-                elif need_buy and( buy_id1 == "-1" and buy_id2 == "-1"):
-                    restart= True
-                    print("cancel reason 2")
-                elif need_buy and(buy_price1>buy_upper1 or buy_price2>buy_upper2):
+                elif need_buy and(buy_price>buy_upper1):
                     restart = True
                     print("cancel reason 3")
-                elif need_buy and (buy_price1<buy_lower1 or buy_price2<buy_lower2):
+                elif need_buy and (buy_price<buy_lower1):
                     restart = True
                     print("cancel reason 4")
-                elif need_sell and (sell_price1>sell_upper1 or sell_price2>sell_upper2):
+                elif need_sell and (sell_price>sell_upper1):
                     restart = True
                     print("cancel reason 5")
-                elif need_sell and (sell_price1<sell_lower1 or sell_price2<sell_lower2):
+                elif need_sell and (sell_price<sell_lower1):
                     restart = True
                     print("cancel reason 6")
 
@@ -405,8 +362,8 @@ if __name__ == '__main__':
 
 
     load_money = "usdt"
-    total_load_coin="bch trx xrp xlm ft zec ada dash bsv iota"
-    load_coin = "eth btc eos etc ltc"
+    total_load_coin="eos etc bch trx xrp xlm ft zec ada dash bsv iota"
+    load_coin = "eth btc ltc"
     load_parition="2"
     load_total_money="100"
     load_bidirection="3"
