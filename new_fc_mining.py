@@ -131,20 +131,29 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
              #   api.take_order(market, "buy", buy1,min_size,coin_place)
             #if need_sell:
             #    api.take_order(market, "sell", ask1, min_size, coin_place)
-            for i in range(9):
-                buy_price=buy1-i*min_price_tick
-                sell_price=ask1+i*min_price_tick
+            if need_buy:
+                api.take_order(market, "buy", buy1, min_size, coin_place)
+                time.sleep(0.1)
+            if need_sell:
+                api.take_order(market, "sell", ask1, min_size, coin_place)
+                time.sleep(0.1)
+
+
+            buy_price = buy1 - 8 * min_price_tick
+            sell_price = ask1 + 8 * min_price_tick
+            for i in range(8):
+                buy_price=buy_price+i*min_price_tick
+                sell_price=sell_price-i*min_price_tick
                 if need_buy:
-                    api.take_order(market, "buy", buy_price, min_size*(i+1), coin_place)
+                    api.take_order(market, "buy", buy_price, min_size, coin_place)
                     time.sleep(0.1)
                 if need_sell:
-                    api.take_order(market, "sell", sell_price, min_size*(i+1), coin_place)
+                    api.take_order(market, "sell", sell_price, min_size, coin_place)
                     time.sleep(0.1)
-
-            money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin)
-
             buy_price = buy1 - 9 * min_price_tick
             sell_price = ask1 + 9 * min_price_tick
+            money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin)
+
 
             if need_buy:
                 current_money_have = money_have - coin*buy1
@@ -172,22 +181,22 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
             try:
                 print("counter:%d"%counter)
                 obj = api.get_depth(market)
-                buy5 = obj["bids"][4 * 2]
+                buy7 = obj["bids"][6 * 2]
                 buy15 = obj["bids"][14 * 2]
                 buy4 = obj["bids"][3 * 2]
                 buy11 = obj["bids"][10 * 2]
                 buy10 = obj["bids"][9 * 2]
-                ask5 = obj["asks"][4 * 2]
+                ask7 = obj["asks"][6 * 2]
                 ask15 = obj["asks"][14 * 2]
                 ask4 = obj["asks"][3 * 2]
                 ask11 = obj["asks"][10 * 2]
                 ask10 = obj["asks"][9 * 2]
 
 
-                buy_upper1 = buy5
+                buy_upper1 = buy7
                 buy_lower1 = buy15
                 sell_upper1 = ask15
-                sell_lower1 = ask5
+                sell_lower1 = ask7
 
                 print("buy4:%f" % buy4)
                 print("buy10:%f" % buy10)
@@ -362,8 +371,8 @@ if __name__ == '__main__':
 
 
     load_money = "usdt"
-    total_load_coin="eos etc bch trx xrp xlm ft zec ada dash bsv iota"
-    load_coin = "eth btc ltc"
+    total_load_coin="btc etc bch trx xrp xlm ft zec ada dash bsv iota"
+    load_coin = "eos eth ltc"
     load_parition="2"
     load_total_money="100"
     load_bidirection="3"
