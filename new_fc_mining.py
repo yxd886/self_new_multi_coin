@@ -128,13 +128,9 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
                 ask1 = obj["asks"][0*2]
                 print("buy:",buy1,"sell:",ask1)
                 print("trade_pair:",market)
-                if need_buy:
-                    api.take_order(market, "buy", buy1, min_size, coin_place)
-                    time.sleep(0.1)
-                if need_sell:
-                    api.take_order(market, "sell", ask1, min_size, coin_place)
-                    time.sleep(0.1)
-                time.sleep(2)
+                api.take_order(market, "buy", buy1, min_size, coin_place)
+                api.take_order(market, "sell", ask1, min_size, coin_place)
+
             # risk control
             obj = api.get_depth(market)
             buy1 = obj["bids"][0 * 2]
