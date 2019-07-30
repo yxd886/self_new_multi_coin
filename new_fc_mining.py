@@ -122,14 +122,39 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
         try:
             api.wallet_to_trade("usdt", 5)
             api.cancel_all_pending_order(market)
-            for i in range(30):
+            start_time = time.time()
+            obj = api.get_depth(market)
+            lastbuy1=list()
+            lastask1=list()
+            lastbuy1.append(obj["bids"][0 * 2])
+            lastask1.append(obj["asks"][0 * 2])
+            while (time.time()-start_time)<300:
                 obj = api.get_depth(market)
                 buy1 = obj["bids"][0*2]
                 ask1 = obj["asks"][0*2]
+                buy2 = obj["bids"][1*2]
+                ask2 = obj["asks"][1*2]
+                buy3 = obj["bids"][2*2]
+                ask3 = obj["asks"][2*2]
+                buy10 = obj["bids"][9*2]
+                ask10 = obj["asks"][9*2]
                 print("buy:",buy1,"sell:",ask1)
                 print("trade_pair:",market)
+                if sum(lastask1)/len(lastask1)>ask10:
+                    lastask1=list()
+                    api.cancel_all_sell_pending_order(market)
+                if sum(lastbuy1)/len(lastbuy1)<buy10:
+                    lastbuy1=list()
+                    api.cancel_all_buy_pending_order(market)
+
+                lastask1.append(ask1)
+                lastbuy1.append(buy1)
                 api.take_order(market, "buy", buy1, min_size, coin_place)
                 api.take_order(market, "sell", ask1, min_size, coin_place)
+                api.take_order(market, "buy", buy2, min_size, coin_place)
+                api.take_order(market, "sell", ask2, min_size, coin_place)
+                api.take_order(market, "buy", buy3, min_size, coin_place)
+                api.take_order(market, "sell", ask3, min_size, coin_place)
 
             # risk control
             obj = api.get_depth(market)
