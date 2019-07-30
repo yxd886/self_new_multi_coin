@@ -147,6 +147,10 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
                     lastbuy1=list()
                     api.cancel_all_buy_pending_order(market)
 
+                money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin)
+                if coin*ask1>money_have/2:
+                    api.take_order(market, "sell", buy1*0.98, coin/2, coin_place)
+
                 lastask1.append(ask1)
                 lastbuy1.append(buy1)
                 api.take_order(market, "buy", buy1, min_size, coin_place)
@@ -233,9 +237,13 @@ def tick(load_access_key, load_access_secret, load_money, load_coin, load_pariti
             time.sleep(0.1)
             api.cancel_all_pending_order(market)
         print("cancel pending orders completed")
+
+        total_money, coin, freez_money, freez_coin = api.get_available_balance(_money, coins[0])
+
+
         for i, market in enumerate(markets):
             time.sleep(0.1)
-            thread = threading.Thread(target=buy_main_body,args=(mutex2,api,bidirection,partition,_money,coins[i],min_size[market],money_have/len(markets),coin_place_list[i]))
+            thread = threading.Thread(target=buy_main_body,args=(mutex2,api,bidirection,partition,_money,coins[i],min_size[market],total_money,coin_place_list[i]))
             thread.setDaemon(True)
             thread.start()
         time.sleep(3600)
