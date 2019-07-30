@@ -108,7 +108,7 @@ def check_and_save():
 
 
 
-def buy_main_body(mutex2, api, expire_time, created_time, license_day, bidirection, partition, _money, _coin, min_size,
+def buy_main_body(mutex2, api, bidirection, partition, _money, _coin, min_size,
                   money_have, coin_place):
     market = _coin + _money
     buy_id1 = "-1"
@@ -126,10 +126,6 @@ def buy_main_body(mutex2, api, expire_time, created_time, license_day, bidirecti
             api.cancel_all_pending_order(market)
             counter = 0
             current_time = time.time()
-            if (current_time > expire_time):
-                print("license expired!!!")
-                a = input("")
-                sys.exit()
             obj = api.get_depth(market)
             buy1 = obj["bids"][0 * 2]
             ask1 = obj["asks"][0 * 2]
@@ -296,6 +292,7 @@ def tick(load_access_key, load_access_secret, load_money, load_coin, load_pariti
         partition = int(load_parition.strip())
         assert(partition!=0)
         money_have = float(load_total_money.strip())
+        money_have = min(400,money_have)
 
         market_exchange_dict = {"bbgcusdt":"renren","btmusdt":"jingxuanremenbi","zipusdt":"servicex","fiusdt":"fiofficial","dogeusdt":"tudamu","aeusdt":"servicex","zrxusdt":"tudamu","batusdt":"jiucai","linkusdt":"jingxuanremenbi","icxusdt":"allin","omgusdt":"ninthzone","zilusdt":"langchao"}
 
@@ -305,7 +302,6 @@ def tick(load_access_key, load_access_secret, load_money, load_coin, load_pariti
 
 
         api = fcoin_api(access_key, access_secret)
-        api.wallet_to_trade("usdt", 40)
         min_size=api.set_demical(_money, coins)
         print("start cancel existing pending orders")
         for market in markets:
@@ -323,9 +319,6 @@ def tick(load_access_key, load_access_secret, load_money, load_coin, load_pariti
     except Exception as ex:
         print(sys.stderr, 'tick: ', ex)
         #a= input()
-
-
-
 def init_sell(apikey,apisecret,total_load_coin,load_money):
     access_key = apikey.strip()
     access_secret = apisecret.strip()
