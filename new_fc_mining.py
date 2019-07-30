@@ -107,29 +107,35 @@ def check_and_save():
     win.destroy()
 
 
-def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_have,coin_place):
+
+def buy_main_body(mutex2, api, expire_time, created_time, license_day, bidirection, partition, _money, _coin, min_size,
+                  money_have, coin_place):
     market = _coin + _money
     buy_id1 = "-1"
     buy_id2 = "-1"
     need_buy = False
-    need_sell =False
-    min_price_tick = 1/(10**api.price_decimal[market])
-    if bidirection==1 or bidirection==3:
+    need_sell = False
+    min_price_tick = 1 / (10 ** api.price_decimal[market])
+    if bidirection == 1 or bidirection == 3:
         need_buy = True
-    if bidirection==2 or bidirection==3:
+    if bidirection == 2 or bidirection == 3:
         need_sell = True
     while True:
         try:
-            api.wallet_to_trade("usdt", 5)
+            #api.wallet_to_trade("usdt", 5)
             api.cancel_all_pending_order(market)
-            counter=0
+            counter = 0
             current_time = time.time()
+            if (current_time > expire_time):
+                print("license expired!!!")
+                a = input("")
+                sys.exit()
             obj = api.get_depth(market)
-            buy1 = obj["bids"][0*2]
-            ask1 = obj["asks"][0*2]
-            #if need_buy:
-             #   api.take_order(market, "buy", buy1,min_size,coin_place)
-            #if need_sell:
+            buy1 = obj["bids"][0 * 2]
+            ask1 = obj["asks"][0 * 2]
+            # if need_buy:
+            #   api.take_order(market, "buy", buy1,min_size,coin_place)
+            # if need_sell:
             #    api.take_order(market, "sell", ask1, min_size, coin_place)
             if need_buy:
                 api.take_order(market, "buy", buy1, min_size, coin_place)
@@ -138,12 +144,11 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
                 api.take_order(market, "sell", ask1, min_size, coin_place)
                 time.sleep(0.1)
 
-
             buy_price = buy1 - 8 * min_price_tick
             sell_price = ask1 + 8 * min_price_tick
             for i in range(8):
-                buy_price=buy_price+i*min_price_tick
-                sell_price=sell_price-i*min_price_tick
+                buy_price = buy_price + i * min_price_tick
+                sell_price = sell_price - i * min_price_tick
                 if need_buy:
                     api.take_order(market, "buy", buy_price, min_size, coin_place)
                     time.sleep(0.1)
@@ -154,23 +159,22 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
             sell_price = ask1 + 9 * min_price_tick
             money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin)
 
-
             if need_buy:
-                current_money_have = money_have - coin*buy1
-                available_coin_space = current_money_have/buy_price
-                money1 = min(money_have,money)
-                coin1_can_buy = money1/ buy_price
-                print("level 1 coin can buy:%f"%coin1_can_buy)
-                print("available_coin1_space:%f"%available_coin_space)
-                if available_coin_space>min_size and coin1_can_buy>min_size:
+                current_money_have = money_have - coin * buy1
+                available_coin_space = current_money_have / buy_price
+                money1 = min(money_have, money)
+                coin1_can_buy = money1 / buy_price
+                print("level 1 coin can buy:%f" % coin1_can_buy)
+                print("available_coin1_space:%f" % available_coin_space)
+                if available_coin_space > min_size and coin1_can_buy > min_size:
                     print("take buy order 1")
                     buy_id1 = api.take_order(market, "buy", buy_price,
-                                            (min(available_coin_space,coin1_can_buy)),
-                                            coin_place)
+                                             (min(available_coin_space, coin1_can_buy)),
+                                             coin_place)
             if need_sell:
                 coin1_can_sell = coin
-                if coin1_can_sell>min_size:
-                    sell_id_1 = api.take_order(market, "sell", sell_price, coin1_can_sell,coin_place)
+                if coin1_can_sell > min_size:
+                    sell_id_1 = api.take_order(market, "sell", sell_price, coin1_can_sell, coin_place)
 
             # api.balance_account("QC","USDT")
         except Exception as ex:
@@ -179,7 +183,7 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
         interval = 0.1
         while True:
             try:
-                print("counter:%d"%counter)
+                print("counter:%d" % counter)
                 obj = api.get_depth(market)
                 buy7 = obj["bids"][6 * 2]
                 buy15 = obj["bids"][14 * 2]
@@ -193,6 +197,25 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
                 ask10 = obj["asks"][9 * 2]
 
 
+
+                # risk control
+                kline_obj = api.get_kline("H1", market, 1)
+                open_price = kline_obj["data"][0]["open"]
+                current_price = buy1
+                ratio = (open_price - current_price) / open_price
+                print("risk control ratio:%f" % ratio)
+                if (ratio > 0.05):  # 1 hour kline drop exceeds 5%
+                    api.cancel_all_pending_order(market)
+                    time.sleep(5)
+                    money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin)
+                    api.take_order(market, "sell", buy13 * 0.99, coin, coin_place)
+                    time.sleep(30)
+                    api.take_order(market,"buy",buy1*0.85,coin,coin_place)
+                    print("risk control, pause trade!!!!")
+                    time.sleep(1800)
+                    break
+
+
                 buy_upper1 = buy7
                 buy_lower1 = buy15
                 sell_upper1 = ask15
@@ -200,32 +223,32 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
 
                 print("buy4:%f" % buy4)
                 print("buy10:%f" % buy10)
-                print("sell4:%f"% ask4)
+                print("sell4:%f" % ask4)
                 print("sell10:%f" % ask10)
-                print("trade pair:"+market)
+                print("trade pair:" + market)
                 restart = False
 
-                if counter>300:
+                if counter > 300:
                     restart = True
                     print("cancel reason 1")
-                elif need_buy and(buy_price>buy_upper1):
+                elif need_buy and (buy_price > buy_upper1):
                     restart = True
                     print("cancel reason 3")
-                elif need_buy and (buy_price<buy_lower1):
+                elif need_buy and (buy_price < buy_lower1):
                     restart = True
                     print("cancel reason 4")
-                elif need_sell and (sell_price>sell_upper1):
+                elif need_sell and (sell_price > sell_upper1):
                     restart = True
                     print("cancel reason 5")
-                elif need_sell and (sell_price<sell_lower1):
+                elif need_sell and (sell_price < sell_lower1):
                     restart = True
                     print("cancel reason 6")
 
-                counter = time.time()-current_time
+                counter = time.time() - current_time
                 time.sleep(interval)
                 if restart:
-                    buy_id1="-1"
-                    buy_id2="-1"
+                    buy_id1 = "-1"
+                    buy_id2 = "-1"
                     api.cancel_all_pending_order(market)
                     time.sleep(0.5)
                     break
@@ -371,8 +394,8 @@ if __name__ == '__main__':
 
 
     load_money = "usdt"
-    total_load_coin="xlm ada btc bch xrp ft ada dash bsv iota"
-    load_coin = "eos eth ltc trx etc zec"
+    total_load_coin="eos eth ltc trx etc zec xlm ada btc bch xrp ft ada dash bsv iota"
+    load_coin = "eos etc ltc"
     load_parition="2"
     load_total_money="100"
     load_bidirection="3"
