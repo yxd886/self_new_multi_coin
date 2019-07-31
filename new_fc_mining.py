@@ -155,6 +155,8 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
 
                 lastask1.append(ask1)
                 lastbuy1.append(buy1)
+                buy_price = buy1
+                sell_price = ask1
                 for i in range(9):
                     buy_price = buy_price-min_price_tick
                     lastbuy1.append(buy_price)
