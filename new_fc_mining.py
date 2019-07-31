@@ -138,12 +138,14 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
                 ask3 = obj["asks"][2*2]
                 buy10 = obj["bids"][9*2]
                 ask10 = obj["asks"][9*2]
+                buy15 = obj["bids"][14*2]
+                ask15 = obj["asks"][14*2]
                 print("buy:",buy1,"sell:",ask1)
                 print("trade_pair:",market)
-                if sum(lastask1)/len(lastask1)>ask10:
+                if max(lastask1)>ask15:
                     lastask1=list()
                     api.cancel_all_sell_pending_order(market)
-                if sum(lastbuy1)/len(lastbuy1)<buy10:
+                if min(lastbuy1)<buy15:
                     lastbuy1=list()
                     api.cancel_all_buy_pending_order(market)
 
@@ -153,12 +155,20 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
 
                 lastask1.append(ask1)
                 lastbuy1.append(buy1)
-                api.take_order(market, "buy", buy1, min_size, coin_place)
-                api.take_order(market, "sell", ask1, min_size, coin_place)
-                api.take_order(market, "buy", buy2, min_size, coin_place)
-                api.take_order(market, "sell", ask2, min_size, coin_place)
-                api.take_order(market, "buy", buy3, min_size, coin_place)
-                api.take_order(market, "sell", ask3, min_size, coin_place)
+                for i in range(9):
+                    buy_price = buy_price-min_price_tick
+                    lastbuy1.append(buy_price)
+                    buy_id=api.take_order(market, "buy", buy_price, min_size, coin_place, trade_type)
+                    if buy_id=="-1":
+                        print("break")
+                        break
+                for i in range(9):
+                    sell_price = sell_price+min_price_tick
+                    lastask1.append(sell_price)
+                    sell_id=api.take_order(market, "sell", sell_price,min_size, coin_place, trade_type)
+                    if sell_id=="-1":
+                        print("break")
+                        break
 
             # risk control
             obj = api.get_depth(market)
