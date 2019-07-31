@@ -160,14 +160,14 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
                 for i in range(9):
                     buy_price = buy_price-min_price_tick
                     lastbuy1.append(buy_price)
-                    buy_id=api.take_order(market, "buy", buy_price, min_size, coin_place, trade_type)
+                    buy_id=api.take_order(market, "buy", buy_price, min_size, coin_place)
                     if buy_id=="-1":
                         print("break")
                         break
                 for i in range(9):
                     sell_price = sell_price+min_price_tick
                     lastask1.append(sell_price)
-                    sell_id=api.take_order(market, "sell", sell_price,min_size, coin_place, trade_type)
+                    sell_id=api.take_order(market, "sell", sell_price,min_size, coin_place)
                     if sell_id=="-1":
                         print("break")
                         break
