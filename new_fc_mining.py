@@ -144,10 +144,17 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
                 print("trade_pair:",market)
                 if max(lastask1)>ask15:
                     lastask1=list()
-                    api.cancel_all_sell_pending_order(market)
+                    #api.cancel_all_sell_pending_order(market)
+                    thread = threading.Thread(target=api.cancel_all_sell_pending_order, args=(market,))
+                    thread.setDaemon(True)
+                    thread.start()
+
                 if min(lastbuy1)<buy15:
                     lastbuy1=list()
-                    api.cancel_all_buy_pending_order(market)
+                    #api.cancel_all_buy_pending_order(market)
+                    thread = threading.Thread(target=api.cancel_all_buy_pending_order, args=(market,))
+                    thread.setDaemon(True)
+                    thread.start()
 
                 money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin)
                 if coin*ask1>money_have/2:
