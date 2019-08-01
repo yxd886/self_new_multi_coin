@@ -462,7 +462,7 @@ if __name__ == '__main__':
 
     load_money = "usdt"
     total_load_coin="eos eth ltc trx etc zec xlm ada btc bch xrp ft ada dash bsv iota"
-    load_coin = "ltc"
+    load_coin = "ltc eth eos"
     load_parition="2"
     load_total_money="100"
     load_bidirection="3"
