@@ -184,7 +184,7 @@ def buy_main_body(mutex2, api, bidirection, partition, _money, _coin, min_size,
                 buy7 = obj["bids"][6 * 2]
                 buy15 = obj["bids"][14 * 2]
                 buy4 = obj["bids"][3 * 2]
-                buy11 = obj["bids"][10 * 2]
+                buy13 = obj["bids"][12 * 2]
                 buy10 = obj["bids"][9 * 2]
                 ask7 = obj["asks"][6 * 2]
                 ask15 = obj["asks"][14 * 2]
