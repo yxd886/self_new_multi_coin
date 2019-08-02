@@ -257,7 +257,7 @@ class fcoin_api:
         id = obj.get("data", "-1")
         return id
     def wallet_to_trade(self,coin,amount=None):
-        obj = self._api.get_account_balance()
+        obj = self._api.get_wallet_balance()
         coin_list = obj["data"]
         for item in coin_list:
             if item["currency"] == "coin":
