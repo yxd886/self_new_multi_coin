@@ -140,7 +140,7 @@ class DataAPI():
         return self.signed_request(GET, self.http_account + 'balance')
 
     def get_wallet_balance(self):
-        return self.signed_request(GET,"GET https://api.fcoin.com/v2/assets/accounts/balance")
+        return self.signed_request(GET,"https://api.fcoin.com/v2/assets/accounts/balance")
 
     def list_orders(self, **payload):
         """get orders"""
