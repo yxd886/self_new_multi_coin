@@ -110,7 +110,7 @@ def check_and_save():
 def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_have,coin_place):
 
     need_balance = True
-    cell_num=20
+    cell_num=30
     market = _coin + _money
     stamp = int(time.time())
     time_local = time.localtime(stamp)
