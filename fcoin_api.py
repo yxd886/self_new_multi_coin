@@ -139,6 +139,9 @@ class DataAPI():
         """get user balance"""
         return self.signed_request(GET, self.http_account + 'balance')
 
+    def get_wallet_balance(self):
+        return self.signed_request(GET,"GET https://api.fcoin.com/v2/assets/accounts/balance")
+
     def list_orders(self, **payload):
         """get orders"""
         return self.signed_request(GET, self.http_orders, **payload)
@@ -253,8 +256,14 @@ class fcoin_api:
 
         id = obj.get("data", "-1")
         return id
-    def wallet_to_trade(self,coin,amount):
-        self._api.wallet_to_trade(amount=amount,currency=coin)
+    def wallet_to_trade(self,coin,amount=None):
+        obj = self._api.get_account_balance()
+        coin_list = obj["data"]
+        for item in coin_list:
+            if item["currency"] == "coin":
+                res_money = float(item["available"])
+
+        self._api.wallet_to_trade(amount=res_money,currency=coin)
 
     def get_order_info(self, market, id):
         obj = self._api.get_order(order_id=id)

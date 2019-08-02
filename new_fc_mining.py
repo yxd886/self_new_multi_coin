@@ -373,7 +373,7 @@ def tick(load_access_key, load_access_secret, load_money, load_coin, load_pariti
 
 
         api = fcoin_api(access_key, access_secret)
-        api.wallet_to_trade("usdt", 40)
+        api.wallet_to_trade("usdt")
         min_size=api.set_demical(_money, coins)
         print("start cancel existing pending orders")
         for market in markets:
