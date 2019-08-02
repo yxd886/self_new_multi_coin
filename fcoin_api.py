@@ -260,7 +260,7 @@ class fcoin_api:
         obj = self._api.get_wallet_balance()
         coin_list = obj["data"]
         for item in coin_list:
-            if item["currency"] == "coin":
+            if item["currency"] == coin:
                 res_money = float(item["available"])
 
         self._api.wallet_to_trade(amount=res_money,currency=coin)
