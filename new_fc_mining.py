@@ -143,8 +143,8 @@ def buy_main_body(mutex2, api, bidirection, partition, _money, _coin, min_size,
             buy_price = buy1 - 8 * min_price_tick
             sell_price = ask1 + 8 * min_price_tick
             for i in range(8):
-                buy_price = buy_price + i * min_price_tick
-                sell_price = sell_price - i * min_price_tick
+                buy_price = buy_price +  min_price_tick
+                sell_price = sell_price - min_price_tick
                 if need_buy:
                     api.take_order(market, "buy", buy_price, min_size, coin_place)
                     time.sleep(0.1)
