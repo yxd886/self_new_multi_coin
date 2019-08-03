@@ -109,8 +109,8 @@ def check_and_save():
 
 def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_have,coin_place):
 
-    need_balance = True
-    cell_num=30
+    need_balance = False
+    cell_num=10
     market = _coin + _money
     stamp = int(time.time())
     time_local = time.localtime(stamp)
@@ -467,7 +467,7 @@ if __name__ == '__main__':
 
     load_money = "usdt"
     total_load_coin="eos eth ltc trx etc zec xlm ada btc bch xrp ft ada dash bsv iota"
-    load_coin = "xrp eos trx etc"
+    load_coin = "xrp eos trx etc xlm zec"
     load_parition="2"
     load_total_money="100"
     load_bidirection="3"
