@@ -134,13 +134,13 @@ def buy_main_body(mutex2, api, bidirection, partition, _money, _coin, min_size,
             # if need_sell:
             #    api.take_order(market, "sell", ask1, min_size, coin_place)
             money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin)
-            real_step_size = max((min(money_have,money)/ask1)/10,min_size)
-
+            real_buy_step_size = max((min(money_have,money)/ask1)/10,min_size)
+            real_sell_step_size = max(coin/buy1/10,min_size)
             if need_buy:
-                api.take_order(market, "buy", buy1, real_step_size, coin_place)
+                api.take_order(market, "buy", buy1, real_buy_step_size, coin_place)
                 time.sleep(0.1)
             if need_sell:
-                api.take_order(market, "sell", ask1, real_step_size, coin_place)
+                api.take_order(market, "sell", ask1, real_sell_step_size, coin_place)
                 time.sleep(0.1)
 
             buy_price = buy1 - 8 * min_price_tick
@@ -149,10 +149,10 @@ def buy_main_body(mutex2, api, bidirection, partition, _money, _coin, min_size,
                 buy_price = buy_price +  min_price_tick
                 sell_price = sell_price - min_price_tick
                 if need_buy:
-                    api.take_order(market, "buy", buy_price, real_step_size, coin_place)
+                    api.take_order(market, "buy", buy_price, real_buy_step_size, coin_place)
                     time.sleep(0.1)
                 if need_sell:
-                    api.take_order(market, "sell", sell_price, real_step_size, coin_place)
+                    api.take_order(market, "sell", sell_price, real_sell_step_size, coin_place)
                     time.sleep(0.1)
             buy_price = buy1 - 9 * min_price_tick
             sell_price = ask1 + 9 * min_price_tick
