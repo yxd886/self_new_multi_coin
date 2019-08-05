@@ -110,12 +110,12 @@ def check_and_save():
 def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_have,coin_place):
 
     need_balance = False
-    cell_num=10
+    cell_num=20
     market = _coin + _money
     stamp = int(time.time())
     time_local = time.localtime(stamp)
     new_hour = int(time_local.tm_hour)
-    min_price_tick = 1 / (10 ** api.price_decimal[market])
+    min_price_tick = 0.001
     if new_hour == 0:
         daily_restart = True
     else:
@@ -139,15 +139,13 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
             buy1 = obj["bids"][0*2]
 
             print("trade_pair:%s"%(market))
-
-            price_step = min_price_tick
-            price = buy1-(cell_num/2)*min_price_tick
+            base_price = buy1 - (cell_num / 2) * min_price_tick*buy1
 
             money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin)
             remain_coin = coin
             for i in range(cell_num):
+                price = base_price + base_price*min_price_tick*i
                 price_list.append(price)
-                price+=price_step
 
             buy_lower = min(price_list)
             sell_upper = max(price_list)
@@ -256,9 +254,8 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
                 print("trade_pair:%s"%market)
                 print("time spent:%f seconds"%(time.time()-_start_time))
                 print("len of buy_order_list:", len(buy_order_list))
-                if ask1<=buy_lower or buy1>=sell_upper:
+                if time.time()-_start_time>1800:
                     break
-
                 if len(buy_order_list)>0:
                     buy_item =  buy_order_list[0]
                     buy_id_to_monitor =buy_item["id"]
@@ -273,6 +270,8 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
                         if id !="-1":
                             tmp_sell_order_list.insert(0,{"id":id,"pair":buy_item["self"],"self":buy_item["pair"]})
                         buy_order_list.remove(buy_item)
+                else:
+                    break
                 print("len of sell order list:",len(sell_order_list))
                 if len(sell_order_list)>0:
                     sell_item = sell_order_list[0]
@@ -303,7 +302,8 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
                         if id != "-1":
                             sell_order_list.insert(0, {"id": id, "pair": tmp_buy_item["self"], "self": tmp_buy_item["pair"]})
                         tmp_buy_order_list.remove(tmp_buy_item)
-
+                else:
+                    break
 
                 if len(tmp_sell_order_list)>0:
                     tmp_sell_item = tmp_sell_order_list[0]
