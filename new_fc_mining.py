@@ -217,7 +217,7 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
                     id = api.take_order(market,"buy",price,size,coin_place)
                     if id!="-1":
                         _counter=0
-                        buy_order_list.append({"id":id,"pair":(market,"sell",price+min_price_tick*price,size,coin_place),"self":(market,"buy",price,size,coin_place)})
+                        buy_order_list.append({"id":id,"pair":(market,"sell",price+min_price_tick*price/2,size,coin_place),"self":(market,"buy",price,size,coin_place)})
                     else:
                         _counter+=1
                         if _counter>=3:
@@ -231,7 +231,7 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
                         id = api.take_order(market,"sell",price,size,coin_place)
                         if id !="-1":
                             _counter = 0
-                            sell_order_list.append({"id":id,"pair":(market,"buy",price-min_price_tick*price,size,coin_place),"self":(market,"sell",price,size,coin_place)})
+                            sell_order_list.append({"id":id,"pair":(market,"buy",price-min_price_tick*price/2,size,coin_place),"self":(market,"sell",price,size,coin_place)})
                         else:
                             _counter += 1
                             if _counter >= 3:
