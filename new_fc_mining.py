@@ -254,8 +254,6 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
                 print("trade_pair:%s"%market)
                 print("time spent:%f seconds"%(time.time()-_start_time))
                 print("len of buy_order_list:", len(buy_order_list))
-                if time.time()-_start_time>1800:
-                    break
                 if len(buy_order_list)>0:
                     buy_item =  buy_order_list[0]
                     buy_id_to_monitor =buy_item["id"]
