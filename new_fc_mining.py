@@ -136,6 +136,7 @@ def buy_main_body(mutex2, api, bidirection, partition, _money, _coin, min_size,
             money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin)
             real_buy_step_size = max((min(money_have,money)/ask1)/10,min_size)
             real_sell_step_size = max(coin/10,min_size)
+
             if need_buy:
                 api.take_order(market, "buy", buy1, real_buy_step_size, coin_place)
                 time.sleep(0.1)
@@ -147,7 +148,7 @@ def buy_main_body(mutex2, api, bidirection, partition, _money, _coin, min_size,
             sell_price = ask1 + 8 * min_price_tick
             for i in range(8):
                 buy_price = buy_price +  min_price_tick
-                sell_price = sell_price - min_price_tick
+                sell_price = sell_price -  min_price_tick
                 if need_buy:
                     api.take_order(market, "buy", buy_price, real_buy_step_size, coin_place)
                     time.sleep(0.1)
@@ -187,7 +188,7 @@ def buy_main_body(mutex2, api, bidirection, partition, _money, _coin, min_size,
                 buy7 = obj["bids"][6 * 2]
                 buy15 = obj["bids"][14 * 2]
                 buy4 = obj["bids"][3 * 2]
-                buy13 = obj["bids"][12 * 2]
+                buy11 = obj["bids"][10 * 2]
                 buy10 = obj["bids"][9 * 2]
                 ask7 = obj["asks"][6 * 2]
                 ask15 = obj["asks"][14 * 2]
@@ -214,7 +215,9 @@ def buy_main_body(mutex2, api, bidirection, partition, _money, _coin, min_size,
                     time.sleep(1800)
                     break
 
-
+                money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin)
+                if coin>min_size:
+                    api.take_order(market, "sell", sell_price, coin, coin_place)
                 buy_upper1 = buy7
                 buy_lower1 = buy15
                 sell_upper1 = ask15
@@ -257,7 +260,6 @@ def buy_main_body(mutex2, api, bidirection, partition, _money, _coin, min_size,
                 buy_id1 = "-1"
                 buy_id2 = "-1"
                 break
-
 
 
 
