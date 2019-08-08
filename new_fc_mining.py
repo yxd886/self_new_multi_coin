@@ -123,6 +123,7 @@ def buy_main_body(mutex2, api, bidirection, partition, _money, _coin, min_size,
     while True:
         try:
             #api.wallet_to_trade("usdt", 5)
+            time.sleep(1)
             api.cancel_all_pending_order(market)
             counter = 0
             current_time = time.time()
@@ -316,7 +317,7 @@ def tick(load_access_key, load_access_secret, load_money, load_coin, load_pariti
             api.cancel_all_pending_order(market)
         print("cancel pending orders completed")
         for i, market in enumerate(markets):
-            time.sleep(0.1)
+            time.sleep(0.3)
             thread = threading.Thread(target=buy_main_body,args=(mutex2,api,bidirection,partition,_money,coins[i],min_size[market],money_have/len(markets),coin_place_list[i]))
             thread.setDaemon(True)
             thread.start()
