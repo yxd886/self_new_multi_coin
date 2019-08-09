@@ -412,6 +412,7 @@ if __name__ == '__main__':
                 apikey = line.split("#")[0]
                 apisecret = line.split("#")[1]
                 total_money = line.split("#")[2]
+                load_coin = line.split("#")[3]
                 p1 = Process(target=tick, args=(
                     apikey, apisecret, load_money, load_coin, load_parition, total_money,
                     load_bidirection, load_coin_place))
