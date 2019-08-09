@@ -123,7 +123,6 @@ def buy_main_body(mutex2, api, bidirection, partition, _money, _coin, min_size,
     while True:
         try:
             #api.wallet_to_trade("usdt", 5)
-            time.sleep(1)
             api.cancel_all_pending_order(market)
             counter = 0
             current_time = time.time()
@@ -134,27 +133,23 @@ def buy_main_body(mutex2, api, bidirection, partition, _money, _coin, min_size,
             #   api.take_order(market, "buy", buy1,min_size,coin_place)
             # if need_sell:
             #    api.take_order(market, "sell", ask1, min_size, coin_place)
-            money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin)
-            real_buy_step_size = 10*min_size
-            real_sell_step_size = 10*min_size
-
             if need_buy:
-                api.take_order(market, "buy", buy1, real_buy_step_size, coin_place)
+                api.take_order(market, "buy", buy1, min_size, coin_place)
                 time.sleep(0.1)
             if need_sell:
-                api.take_order(market, "sell", ask1, real_sell_step_size, coin_place)
+                api.take_order(market, "sell", ask1, min_size, coin_place)
                 time.sleep(0.1)
 
             buy_price = buy1 - 8 * min_price_tick
             sell_price = ask1 + 8 * min_price_tick
             for i in range(8):
-                buy_price = buy_price +  min_price_tick
-                sell_price = sell_price -  min_price_tick
+                buy_price = buy_price + i * min_price_tick
+                sell_price = sell_price - i * min_price_tick
                 if need_buy:
-                    api.take_order(market, "buy", buy_price, real_buy_step_size, coin_place)
+                    api.take_order(market, "buy", buy_price, min_size, coin_place)
                     time.sleep(0.1)
                 if need_sell:
-                    api.take_order(market, "sell", sell_price, real_sell_step_size, coin_place)
+                    api.take_order(market, "sell", sell_price, min_size, coin_place)
                     time.sleep(0.1)
             buy_price = buy1 - 9 * min_price_tick
             sell_price = ask1 + 9 * min_price_tick
@@ -181,7 +176,6 @@ def buy_main_body(mutex2, api, bidirection, partition, _money, _coin, min_size,
         except Exception as ex:
             print(sys.stderr, 'zb request ex: ', ex)
             continue
-        '''
         interval = 0.1
         while True:
             try:
@@ -217,9 +211,7 @@ def buy_main_body(mutex2, api, bidirection, partition, _money, _coin, min_size,
                     time.sleep(1800)
                     break
 
-                money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin)
-                if coin>min_size:
-                    api.take_order(market, "sell", sell_price, coin, coin_place)
+
                 buy_upper1 = buy7
                 buy_lower1 = buy15
                 sell_upper1 = ask15
@@ -262,7 +254,7 @@ def buy_main_body(mutex2, api, bidirection, partition, _money, _coin, min_size,
                 buy_id1 = "-1"
                 buy_id2 = "-1"
                 break
-        '''
+
 
 
 
