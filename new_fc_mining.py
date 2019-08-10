@@ -122,9 +122,6 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
         try:
 
             print("in init market")
-            if time.time() > expire_time:
-                print("license expire")
-                sys.exit()
             price_list = list()
             sell_order_list = list()
             buy_order_list = list()
