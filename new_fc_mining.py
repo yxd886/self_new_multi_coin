@@ -108,14 +108,12 @@ def check_and_save():
 
 
 def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_have,coin_place):
-
-    need_balance = True
-    cell_num=20
+    need_balance = False
+    cell_num = 20
     market = _coin + _money
     stamp = int(time.time())
     time_local = time.localtime(stamp)
     new_hour = int(time_local.tm_hour)
-    min_price_tick = 0.005
     if new_hour == 0:
         daily_restart = True
     else:
@@ -124,6 +122,9 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
         try:
 
             print("in init market")
+            if time.time() > expire_time:
+                print("license expire")
+                sys.exit()
             price_list = list()
             sell_order_list = list()
             buy_order_list = list()
@@ -132,116 +133,129 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
 
             api.cancel_all_pending_order(market)
 
-
-
             obj = api.get_depth(market)
             ask1 = obj["asks"][0 * 2]
-            buy1 = obj["bids"][0*2]
+            buy1 = obj["bids"][0 * 2]
+            # min_price_tick = 0.005*buy1
+            min_price_tick = 1 / (10 ** api.price_decimal[market])
 
-            print("trade_pair:%s"%(market))
-            base_price = buy1 - (cell_num / 2) * min_price_tick*buy1
+            lowest_buy = buy1
+            higest_ask = ask1
+
+            print("trade_pair:%s" % (market))
+
+            base_price = buy1 - (cell_num / 2) * min_price_tick
 
             money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin)
             remain_coin = coin
             for i in range(cell_num):
-                price = base_price + base_price*min_price_tick*i
+                price = base_price + min_price_tick * i
                 price_list.append(price)
-
-            buy_lower = min(price_list)
-            sell_upper = max(price_list)
-            if max(price_list)<ask1:
+            if max(price_list) < ask1:
                 gap = 100
-            elif min(price_list)>ask1:
+            elif min(price_list) > ask1:
                 gap = 0
             else:
                 gap = 99
-                for i in range(len(price_list)-1):
-                    if price_list[i]<ask1 and price_list[i+1]>=ask1:
+                for i in range(len(price_list) - 1):
+                    if price_list[i] < ask1 and price_list[i + 1] >= ask1:
                         gap = i
                         break
-                gap+=1
-            print("gap:%d"%gap)
+                gap += 1
+            print("gap:%d" % gap)
 
             coin_need = coin
-            min_coin_need = len( price_list[gap:])*min_size
+            sell_order_num = len(price_list[gap:])
             min_money_need_for_sell = 0
-            sell_step = 0
+            sell_step = max(coin_need / sell_order_num, min_size)
+            '''
 
-
-            if gap<cell_num:
+            if gap < cell_num:
 
                 for price in price_list[gap:]:
-                    min_money_need_for_sell+= price*min_size
+                    min_money_need_for_sell += price * min_size
 
-                money_for_sell = (len( price_list[gap:])/cell_num)*min(money_have,money+coin*buy1)
+                money_for_sell = (len(price_list[gap:]) / cell_num) * min(money_have, money + coin * buy1)
 
-
-                coin_need = (money_for_sell/min_money_need_for_sell)*min_coin_need if min_money_need_for_sell>0 else 0
-                print("coin need:",coin_need)
-
+                coin_need = (
+                                        money_for_sell / min_money_need_for_sell) * min_coin_need if min_money_need_for_sell > 0 else 0
+                print("coin need:", coin_need)
 
             if need_balance:
-                if remain_coin-coin_need>2*min_size:
-                    api.take_order(market,"sell",buy1-buy1*0.01,remain_coin-coin_need-min_size,coin_place)
-                elif remain_coin<coin_need:
-                    api.take_order(market,"buy",ask1+ask1*0.01,coin_need-remain_coin+min_size,coin_place)
+                if remain_coin - coin_need > 2 * min_size:
+                    api.take_order(market, "sell", buy1 - buy1 * 0.01, remain_coin - coin_need - min_size, coin_place,trade_type)
+                elif remain_coin < coin_need:
+                    api.take_order(market, "buy", ask1 + ask1 * 0.01, coin_need - remain_coin + min_size, coin_place,trade_type)
             time.sleep(1)
 
-            money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin)
-            sell_step = max((coin / len(price_list[gap:])) + 1 / (10 ** api.amount_decimal[market]), min_size)
 
-            print("sell step:",sell_step)
+            money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin,trade_type)
+            sell_step = max((coin / len(price_list[gap:])) + 1 / (10 ** api.amount_decimal[market]), min_size)
+            '''
+            print("sell step:", sell_step)
 
             new_list = list()
-            buy_step=0
+            buy_step = 0
 
-            if gap>0:
-                new_list =price_list[:gap]
+            if gap > 0:
+                new_list = price_list[:gap]
                 new_list.reverse()
-                min_money_need_for_buy=0
-                #print(new_list)
-                money_for_buy = (len( new_list)/cell_num)*min(money_have,money+coin*buy1)
+                min_money_need_for_buy = 0
+                # print(new_list)
+                money_for_buy = min(money_have, money)
                 print(money_for_buy)
                 for price in new_list:
-                    min_money_need_for_buy+= price*min_size
+                    min_money_need_for_buy += price * min_size
 
-                if money_for_buy>=min_money_need_for_buy:
-                    buy_step = (money_for_buy/min_money_need_for_buy)*min_size+1/(10**api.amount_decimal[market])
+                if money_for_buy >= min_money_need_for_buy:
+                    buy_step = (money_for_buy / min_money_need_for_buy) * min_size + 1 / (
+                        10 ** api.amount_decimal[market])
                 else:
                     buy_step = min_size
             print("buy_step:", buy_step)
-            _counter=0
-            for price in new_list:
-                if price<ask1:
-                    size = buy_step
-                    id = api.take_order(market,"buy",price,size,coin_place)
-                    if id!="-1":
-                        _counter=0
-                        buy_order_list.append({"id":id,"pair":(market,"sell",price+min_price_tick*price/2,size,coin_place),"self":(market,"buy",price,size,coin_place)})
-                    else:
-                        _counter+=1
-                        if _counter>=3:
-                            break
-
             _counter = 0
-            if gap<cell_num:
+            for price in new_list:
+                if price < ask1:
+                    size = buy_step
+                    id = api.take_order(market, "buy", price, size, coin_place)
+                    if id != "-1":
+                        lowest_buy = price
+                        _counter = 0
+                        buy_order_list.append(
+                            {"id": id, "pair": (market, "sell", price + min_price_tick / 2, size, coin_place),
+                             "self": (market, "buy", price, size, coin_place)})
+                    else:
+                        _counter += 1
+                        if _counter >= 3:
+                            break
+            _counter = 0
+            if gap < cell_num:
                 for price in price_list[gap:]:
-                    if price>ask1:
+                    if price > ask1:
                         size = sell_step
-                        id = api.take_order(market,"sell",price,size,coin_place)
-                        if id !="-1":
+                        id = api.take_order(market, "sell", price, size, coin_place)
+                        if id != "-1":
+                            higest_ask = price
                             _counter = 0
-                            sell_order_list.append({"id":id,"pair":(market,"buy",price-min_price_tick*price/2,size,coin_place),"self":(market,"sell",price,size,coin_place)})
+                            sell_order_list.append(
+                                {"id": id, "pair": (market, "buy", price - min_price_tick / 2, size, coin_place),
+                                 "self": (market, "sell", price, size, coin_place)})
                         else:
                             _counter += 1
                             if _counter >= 3:
                                 break
 
 
+
         except Exception as ex:
             print(sys.stderr, 'in init: ', ex)
             print("exception")
             continue
+
+        level1_sell_order_list = list()
+        level1_buy_order_list = list()
+        level1_tmp_buy_order_list = list()
+        level1_tmp_sell_order_list = list()
         _start_time = time.time()
         while True:
             try:
@@ -249,50 +263,64 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
                 obj = api.get_depth(market)
                 ask1 = obj["asks"][0 * 2]
                 buy1 = obj["bids"][0 * 2]
-                print("current ask:%f"%ask1)
-                print("current buy:%f"%buy1)
-                print("trade_pair:%s"%market)
-                print("time spent:%f seconds"%(time.time()-_start_time))
+                ask10 = obj["asks"][9 * 2]
+                buy10 = obj["bids"][9 * 2]
+
+                if higest_ask < buy10 or lowest_buy > ask10:
+                    break
+                print("current ask:%f" % ask1)
+                print("current buy:%f" % buy1)
+                print("trade_pair:%s" % market)
+                print("time spent:%f seconds" % (time.time() - _start_time))
                 print("len of buy_order_list:", len(buy_order_list))
-                if len(buy_order_list)>0:
-                    buy_item =  buy_order_list[0]
-                    buy_id_to_monitor =buy_item["id"]
+                if len(buy_order_list) > 0:
+                    buy_item = buy_order_list[0]
+                    buy_id_to_monitor = buy_item["id"]
                     time.sleep(1)
-                    if api.is_order_complete(market,buy_id_to_monitor):
+                    while api.is_order_complete(market, buy_id_to_monitor):
+                        time.sleep(0.25)
                         _market = buy_item["pair"][0]
                         _direction = buy_item["pair"][1]
                         _price = buy_item["pair"][2]
                         _size = buy_item["pair"][3]
                         _coin_place = buy_item["pair"][4]
-                        id = api.take_order(_market,_direction,_price,_size,_coin_place)
-                        if id !="-1":
-                            tmp_sell_order_list.insert(0,{"id":id,"pair":buy_item["self"],"self":buy_item["pair"]})
+                        id = api.take_order(_market, _direction, _price, _size, _coin_place)
+                        if id != "-1":
+                            tmp_sell_order_list.insert(0,
+                                                       {"id": id, "pair": buy_item["self"], "self": buy_item["pair"]})
                         buy_order_list.remove(buy_item)
-                else:
-                    break
-                print("len of sell order list:",len(sell_order_list))
-                if len(sell_order_list)>0:
+                        if len(buy_order_list) == 0:
+                            break
+                        buy_item = buy_order_list[0]
+                        buy_id_to_monitor = buy_item["id"]
+                print("len of sell order list:", len(sell_order_list))
+                if len(sell_order_list) > 0:
                     sell_item = sell_order_list[0]
                     sell_id_to_monitor = sell_item["id"]
                     time.sleep(1)
-                    if api.is_order_complete(market,sell_id_to_monitor):
+                    while api.is_order_complete(market, sell_id_to_monitor):
+                        time.sleep(0.25)
                         _market = sell_item["pair"][0]
                         _direction = sell_item["pair"][1]
                         _price = sell_item["pair"][2]
                         _size = sell_item["pair"][3]
                         _coin_place = sell_item["pair"][4]
-                        id = api.take_order(_market,_direction,_price,_size,_coin_place)
-                        if id !="-1":
-                            tmp_buy_order_list.insert(0,{"id":id,"pair":sell_item["self"],"self":sell_item["pair"]})
+                        id = api.take_order(_market, _direction, _price, _size, _coin_place)
+                        if id != "-1":
+                            tmp_buy_order_list.insert(0,
+                                                      {"id": id, "pair": sell_item["self"], "self": sell_item["pair"]})
                         sell_order_list.remove(sell_item)
-                else:
-                    break
+                        if len(sell_order_list) == 0:
+                            break
+                        sell_item = sell_order_list[0]
+                        sell_id_to_monitor = sell_item["id"]
 
-                if len(tmp_buy_order_list)>0:
+                if len(tmp_buy_order_list) > 0:
                     tmp_buy_item = tmp_buy_order_list[0]
                     tmp_buy_id = tmp_buy_item["id"]
                     time.sleep(1)
-                    if api.is_order_complete(market, tmp_buy_id):
+                    while api.is_order_complete(market, tmp_buy_id):
+                        time.sleep(0.25)
                         _market = tmp_buy_item["pair"][0]
                         _direction = tmp_buy_item["pair"][1]
                         _price = tmp_buy_item["pair"][2]
@@ -300,15 +328,20 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
                         _coin_place = tmp_buy_item["pair"][4]
                         id = api.take_order(_market, _direction, _price, _size, _coin_place)
                         if id != "-1":
-                            sell_order_list.insert(0, {"id": id, "pair": tmp_buy_item["self"], "self": tmp_buy_item["pair"]})
+                            sell_order_list.insert(0, {"id": id, "pair": tmp_buy_item["self"],
+                                                       "self": tmp_buy_item["pair"]})
                         tmp_buy_order_list.remove(tmp_buy_item)
+                        if len(tmp_buy_order_list) == 0:
+                            break
+                        tmp_buy_item = tmp_buy_order_list[0]
+                        tmp_buy_id = tmp_buy_item["id"]
 
-
-                if len(tmp_sell_order_list)>0:
+                if len(tmp_sell_order_list) > 0:
                     tmp_sell_item = tmp_sell_order_list[0]
                     tmp_sell_id = tmp_sell_item["id"]
                     time.sleep(1)
-                    if api.is_order_complete(market, tmp_sell_id):
+                    while api.is_order_complete(market, tmp_sell_id):
+                        time.sleep(0.25)
                         _market = tmp_sell_item["pair"][0]
                         _direction = tmp_sell_item["pair"][1]
                         _price = tmp_sell_item["pair"][2]
@@ -316,17 +349,118 @@ def buy_main_body(mutex2,api,bidirection,partition,_money,_coin,min_size,money_h
                         _coin_place = tmp_sell_item["pair"][4]
                         id = api.take_order(_market, _direction, _price, _size, _coin_place)
                         if id != "-1":
-                            buy_order_list.insert(0, {"id": id, "pair": tmp_sell_item["self"], "self": tmp_sell_item["pair"]})
+                            buy_order_list.insert(0, {"id": id, "pair": tmp_sell_item["self"],
+                                                      "self": tmp_sell_item["pair"]})
                         tmp_sell_order_list.remove(tmp_sell_item)
+                        if len(tmp_sell_order_list) == 0:
+                            break
+                        tmp_sell_item = tmp_sell_order_list[0]
+                        tmp_sell_id = tmp_sell_item["id"]
+
+                if len(level1_buy_order_list) > 0:
+                    buy_item = level1_buy_order_list[0]
+                    buy_id_to_monitor = buy_item["id"]
+                    time.sleep(0.25)
+                    while api.is_order_complete(market, buy_id_to_monitor):
+                        time.sleep(0.25)
+                        _market = buy_item["pair"][0]
+                        _direction = buy_item["pair"][1]
+                        _price = buy_item["pair"][2]
+                        _size = buy_item["pair"][3]
+                        _coin_place = buy_item["pair"][4]
+                        id = api.take_order(_market, _direction, _price, _size, _coin_place)
+                        if id != "-1":
+                            level1_tmp_sell_order_list.insert(0,
+                                                              {"id": id, "pair": buy_item["self"],
+                                                               "self": buy_item["pair"]})
+                        level1_buy_order_list.remove(buy_item)
+                        if len(level1_buy_order_list) == 0:
+                            break
+                        buy_item = level1_buy_order_list[0]
+                        buy_id_to_monitor = buy_item["id"]
+                print("len of sell order list:", len(sell_order_list))
+                if len(level1_sell_order_list) > 0:
+                    sell_item = level1_sell_order_list[0]
+                    sell_id_to_monitor = sell_item["id"]
+                    time.sleep(0.25)
+                    while api.is_order_complete(market, sell_id_to_monitor):
+                        _market = sell_item["pair"][0]
+                        _direction = sell_item["pair"][1]
+                        _price = sell_item["pair"][2]
+                        _size = sell_item["pair"][3]
+                        _coin_place = sell_item["pair"][4]
+                        id = api.take_order(_market, _direction, _price, _size, _coin_place)
+                        if id != "-1":
+                            level1_tmp_buy_order_list.insert(0,
+                                                             {"id": id, "pair": sell_item["self"],
+                                                              "self": sell_item["pair"]})
+                        level1_sell_order_list.remove(sell_item)
+                        if len(level1_sell_order_list) == 0:
+                            break
+                        sell_item = level1_sell_order_list[0]
+                        sell_id_to_monitor = sell_item["id"]
+
+                if len(level1_tmp_buy_order_list) > 0:
+                    tmp_buy_item = level1_tmp_buy_order_list[0]
+                    tmp_buy_id = tmp_buy_item["id"]
+                    time.sleep(0.25)
+                    while api.is_order_complete(market, tmp_buy_id):
+                        _market = tmp_buy_item["pair"][0]
+                        _direction = tmp_buy_item["pair"][1]
+                        _price = tmp_buy_item["pair"][2]
+                        _size = tmp_buy_item["pair"][3]
+                        _coin_place = tmp_buy_item["pair"][4]
+                        id = api.take_order(_market, _direction, _price, _size, _coin_place)
+                        if id != "-1":
+                            level1_sell_order_list.insert(0, {"id": id, "pair": tmp_buy_item["self"],
+                                                              "self": tmp_buy_item["pair"]})
+                        level1_tmp_buy_order_list.remove(tmp_buy_item)
+                        if len(level1_tmp_buy_order_list) == 0:
+                            break
+                        tmp_buy_item = level1_tmp_buy_order_list[0]
+                        tmp_buy_id = tmp_buy_item["id"]
+
+                if len(level1_tmp_sell_order_list) > 0:
+                    tmp_sell_item = level1_tmp_sell_order_list[0]
+                    tmp_sell_id = tmp_sell_item["id"]
+                    time.sleep(0.25)
+                    while api.is_order_complete(market, tmp_sell_id):
+                        time.sleep(0.25)
+                        _market = tmp_sell_item["pair"][0]
+                        _direction = tmp_sell_item["pair"][1]
+                        _price = tmp_sell_item["pair"][2]
+                        _size = tmp_sell_item["pair"][3]
+                        _coin_place = tmp_sell_item["pair"][4]
+                        id = api.take_order(_market, _direction, _price, _size, _coin_place)
+                        if id != "-1":
+                            level1_buy_order_list.insert(0, {"id": id, "pair": tmp_sell_item["self"],
+                                                             "self": tmp_sell_item["pair"]})
+                        level1_tmp_sell_order_list.remove(tmp_sell_item)
+                        if len(level1_tmp_sell_order_list) == 0:
+                            break
+                        tmp_sell_item = level1_tmp_sell_order_list[0]
+                        tmp_sell_id = tmp_sell_item["id"]
+
+                money, coin, freez_money, freez_coin = api.get_available_balance(_money, _coin)
+                total_value = money+freez_money+(coin+freez_coin)*buy1
+                if total_value<money_have:
+                    id = api.take_order(market, "buy", buy1, min_size, coin_place)
+                    if id != "-1":
+                        level1_buy_order_list.append(
+                            {"id": id, "pair": (market, "sell", buy1 + min_price_tick, min_size, coin_place),
+                             "self": (market, "buy", buy1, min_size, coin_place)})
+
+                    id = api.take_order(market, "sell", ask1, min_size, coin_place)
+                    if id != "-1":
+                        level1_sell_order_list.append(
+                            {"id": id, "pair": (market, "buy", ask1 - min_price_tick, min_size, coin_place),
+                             "self": (market, "sell", ask1, min_size, coin_place)})
 
 
             except Exception as ex:
                 print(sys.stderr, 'in monitor: ', ex)
                 print("restart in 5 seconds......")
                 time.sleep(5)
-
-
-
 
 
 def load_record():
